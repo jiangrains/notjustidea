@@ -8,14 +8,21 @@ import logging
 
 @csrf_exempt
 def login(request):
-	username=request.POST.get('username','')
-	password=request.POST.get('password','')
+	username = request.POST.get("username", None)
+	password = request.POST.get("password",None)
+	method = request.POST.get("method", None)
+	invalid = request.POST.get("invalid", None)
 
-	logging.debug("username:%s password:%s" % (username, password))
+	logging.debug("username:%s password:%s method:%s invalid:%s" % (username, password, method, invalid))
+
+	if invalid == None:
+		logging.debug("invalid is none.")
+	else:
+		logging.debug("invalid is not none.")
 
 
 	response_data = {}
-	response_data['username'] = 'jiangdunchuan'
-	response_data['password'] = '309Jiang'
+	response_data["username"] = "jiangdunchuan"
+	response_data["password"] = "309Jiang"
 
-	return HttpResponse(json.dumps(response_data), content_type = 'application/json')
+	return HttpResponse(json.dumps(response_data), content_type = "application/json")
