@@ -4,6 +4,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
 
+from models import Account
+
+
 # Create your views here.
 
 @csrf_exempt
@@ -19,6 +22,19 @@ def login(request):
 		logging.debug("invalid is none.")
 	else:
 		logging.debug("invalid is not none.")
+
+	if method == "1":
+		Account.objects.add_account(username, password)
+		logging.debug("succeed to add account.")
+	elif method == "2":
+		try:
+			entry = Account.objects.get(username = username)
+		except Exception,e:
+			logging.debug("Exception for getting user=%s", username)
+		#entries = Account.objects.filter(username = username)
+		#entry = entries[0]
+		#logging.debug("entries:%s entry[0]:%s" % (entries, entry.username))
+		#Account.objects.find_account(username)
 
 
 	response_data = {}
