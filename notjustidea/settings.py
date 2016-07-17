@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'account',
+    'uploader',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -142,3 +143,10 @@ STATICFILES_DIRS = (
 #SITE_ROOT = os.path.abspath(os.path.join(SITE_ROOT, '../'))
 #STATIC_ROOT = os.path.join(SITE_ROOT, 'webpages')
 STATIC_URL = '/static/'
+
+
+import logging
+logging.basicConfig(
+    level = logging.DEBUG,
+    format = '[%(asctime)s %(levelname)s]: %(message)s',
+)

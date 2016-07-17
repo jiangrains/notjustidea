@@ -1,7 +1,44 @@
-from django.shortcuts import render
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+
+import json
+import logging
+
+from models import Account
+
 
 # Create your views here.
 
+@csrf_exempt
 def login(request):
-	return HttpResponse("Hello world.")
+	username = request.POST.get("username", None)
+	password = request.POST.get("password",None)
+	method = request.POST.get("method", None)
+	invalid = request.POST.get("invalid", None)
+
+	logging.debug("username:%s password:%s method:%s invalid:%s" % (username, password, method, invalid))
+
+	if invalid == None:
+		logging.debug("invalid is none.")
+	else:
+		logging.debug("invalid is not none.")
+
+	if method == "1":
+		Account.objects.add_account(username, password)
+		logging.debug("succeed to add account.")
+	elif method == "2":
+		try:
+			entry = Account.objects.get(username = username)
+		except Exception,e:
+			logging.debug("Exception for getting user=%s", username)
+		#entries = Account.objects.filter(username = username)
+		#entry = entries[0]
+		#logging.debug("entries:%s entry[0]:%s" % (entries, entry.username))
+		#Account.objects.find_account(username)
+
+
+	response_data = {}
+	response_data["username"] = "jiangdunchuan"
+	response_data["password"] = "309Jiang"
+
+	return HttpResponse(json.dumps(response_data), content_type = "application/json")
