@@ -40,8 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'account',
-    'uploader',
+    'users',
+    'accounts',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -88,8 +88,8 @@ DATABASES = {
         'NAME':'NOTJUSTIDEA',
         'ENGINE':'django.db.backends.mysql',
         'USER':'root',
-        'PASSWORD':'309Jiang$',
-        'HOST':'127.0.0.1',
+        'PASSWORD':'jiangdunchuan',
+        'HOST':'192.168.222.130',
         'PORT':'3306',
     }
 }
