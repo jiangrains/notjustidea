@@ -9,6 +9,17 @@ from models import Account
 
 # Create your views here.
 
+def signup(request):
+	if request.method == "POST":
+		email = request.POST.get("email", None)
+		password = request.POST.get("password", None)
+		captchaId = request.POST.get("captchaId", None)
+		captcha = request.POST.get("captcha", None)
+
+
+
+
+
 @csrf_exempt
 def login(request):
 	username = request.POST.get("username", None)
