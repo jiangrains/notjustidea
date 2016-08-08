@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from users.models import Entiny
+from users.models import User
 
 class AccountManager(models.Manager):
 
@@ -13,7 +13,7 @@ class AccountManager(models.Manager):
 
 # Create your models here.
 class Account(models.Model):
-    entiny = models.OneToOneField(Entiny)
+    user = models.OneToOneField(User)
     email = models.CharField(max_length=256) #注册邮箱
     password = models.CharField(max_length=256)
     status = models.IntegerField() #账号状态，0：未激活，1：正常，2：其他状态
