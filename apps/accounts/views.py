@@ -22,9 +22,10 @@ def signup(request):
 		if (Account.objects.filter(email=email).exists()):
 			errCode = 0x1
 		else:
-			account = Account.objects.create()
-			account = Account()
-			account.save()
+			#account = Account.objects.create()
+			#account = Account(email=email, password=password)
+			#account.save()
+			Account.objects.add_account(email = email, password = password)
 			
 
 
