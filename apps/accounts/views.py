@@ -10,11 +10,22 @@ from models import Account
 # Create your views here.
 
 def signup(request):
+	errCode = 0
 	if request.method == "POST":
 		email = request.POST.get("email", None)
 		password = request.POST.get("password", None)
 		captchaId = request.POST.get("captchaId", None)
 		captcha = request.POST.get("captcha", None)
+
+		# TODO check captcha.
+
+		if (Account.objects.filter(email=email).exists()):
+			errCode = 0x1
+		else:
+			account = Account.objects.create()
+			account = Account()
+			account.save()
+			
 
 
 
