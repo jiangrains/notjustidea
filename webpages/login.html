@@ -5,9 +5,8 @@
 <body>
  <div id="result">see you later</div>
  <form id="my" action="" method="post">
-  <p><span>username</span><input type="text" name="username" /></p>
+  <p><span>email</span><input type="text" name="email" /></p>
   <p><span>password</span><input type="text" name="password" /></p>
-  <p><span>method</span><input type="text" name="method" /></p>
  </form>
  <button id="send">提交</button>
 </body>
@@ -17,13 +16,13 @@ $(function(){
     $("#send").click(function(){
         var cont = $("input").serialize();
         $.ajax({  
-            url:'../account/login.json',
+            url:'../accounts/signup',
             type:'POST',
             //async: false,
             dataType:'json',
             data:cont,
             success:function(data){
-                var str = data.username + data.password;
+                var str = data.email + data.password;
                 $("#result").html(str);
             }
         });

@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.core.mail import EmailMultiAlternatives
+from django.core.mail import send_mail
 
 import json
 import logging
@@ -8,7 +11,7 @@ from models import Account
 
 
 # Create your views here.
-
+@csrf_exempt
 def signup(request):
 	errCode = 0
 	reason = []
@@ -29,6 +32,16 @@ def signup(request):
 			#account.save()
 			Account.objects.add_account(email = email, password = password)
 
+			subject, from_email, to = 'others', 'jiangrains@126.com', 'jiangdunchuan2006@126.com'
+			text_content = 'This is an important message.'
+			html_content = '<b>激活链接：</b><a href="http://www.baidu.com">http:www.baidu.com</a>'
+			#html_content = '<p>This is an <strong>important</strong> message.</p>'
+			msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+			msg.attach_alternative(html_content, "text/html")
+			msg.send()
+
+			#send_mail("other", 'helloworld', 'jiangrains@126.com', ['420286835@qq.com'], fail_silently=False)
+
 	data = {}
 	data["email"] = email
 	response_data = {}
@@ -39,6 +52,7 @@ def signup(request):
 
 	return HttpResponse(json.dumps(response_data), content_type = "application/json")
 
+@csrf_exempt
 def signin(request):
 	errCode = 0
 	reason = []
