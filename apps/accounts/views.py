@@ -11,6 +11,7 @@ from models import Account
 
 def signup(request):
 	errCode = 0
+	reason = []
 	if request.method == "POST":
 		email = request.POST.get("email", None)
 		password = request.POST.get("password", None)
@@ -21,11 +22,34 @@ def signup(request):
 
 		if (Account.objects.filter(email=email).exists()):
 			errCode = 0x1
+			reason.append("EMAIL_REPEAT")
 		else:
 			#account = Account.objects.create()
 			#account = Account(email=email, password=password)
 			#account.save()
 			Account.objects.add_account(email = email, password = password)
+
+	data = {}
+	data["email"] = email
+	response_data = {}
+	response_data["v"] = "1.0"
+	response_data["code"] = errCode
+	response_data["reason"] = reason
+	response_data["data"] = data
+
+	return HttpResponse(json.dumps(response_data), content_type = "application/json")
+
+def signin(request):
+	errCode = 0
+	reason = []
+	if request.method == "POST":
+		email = request.POST.get("email", None)
+		password = request.POST.get("password", None)
+		remember = request.POST.get("remember", None)
+
+		#TODO check captcha.
+
+		
 			
 
 
