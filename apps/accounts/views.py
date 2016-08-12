@@ -49,7 +49,6 @@ def signup(request):
 	response_data["code"] = errCode
 	response_data["reason"] = reason
 	response_data["data"] = data
-
 	return HttpResponse(json.dumps(response_data), content_type = "application/json")
 
 @csrf_exempt
@@ -63,9 +62,26 @@ def signin(request):
 
 		#TODO check captcha.
 
-		
-			
-
+		try:
+			account = Account.objects.get(email = email)
+		except :
+			errCode = 0x1
+			reason.append("USERNAME_OR_PASSWORD_INVALID")
+		else:
+			if account.password != password:
+				errCode = 0x2
+				reason.append("PASSWORD_INVALID")
+			else:
+				account.remember = remember	
+				
+	data = {}
+	data["email"] = email
+	response_data = {}
+	response_data["v"] = "1.0"
+	response_data["code"] = errCode
+	response_data["reason"] = reason
+	response_data["data"] = data
+	return HttpResponse(json.dumps(response_data), content_type = "application/json")
 
 
 
