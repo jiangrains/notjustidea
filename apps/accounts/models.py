@@ -2,14 +2,13 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from users.models import User
 
 import django.utils.timezone as timezone
 import datetime
+import uuid
 
-class Utils():
-    def get_random_string(len):
-        return ''.join(random.sample(string.ascii_letters + string.digits, len))  
+from users.models import User
+from common.utils import Utils
 
 
 class AccountManager(models.Manager):
@@ -26,6 +25,7 @@ class Account(models.Model):
     ACCOUNT_LOCKED = 2
 
     TOKEN_EXPIRE_DAYS = (2*7) #2 weeks
+    CODE_EXPIRE_DAYS = (1) #1 day
     
     #user = models.OneToOneField(User)
     email = models.CharField(max_length = 256) #注册邮箱
@@ -36,7 +36,7 @@ class Account(models.Model):
     signin_date = models.DateTimeField(auto_now = True) #最后登录时间
     code = models.CharField(max_length = 256) #激活码
     code_expire_date = models.DateTimeField(default = timezone.now) #激活码过期时间
-    token = models.CharField(max_length = 256) #令牌
+    token = models.CharField(max_length = 256) #令牌,通过AID换算生成
     token_expire_date = models.DateTimeField(default = timezone.now) #令牌过期时间
     objects = AccountManager() #重写Account的管理器
 
@@ -47,13 +47,36 @@ class Account(models.Model):
         super(Account, self).__init__(*args, **kwargs)
         #user = None
 
-    def remember(self, remember):
+    def signin(self, remember):
         if remember == True:
-            self.token = Utils.get_random_string(32)
+            self.token = Utils.get_uuid()
             self.token_expire_date = timezone.now + datetime.timedelta(days = TOKEN_EXPIRE_DAYS)
         else:
             self.token = ""
-        return self.token    
+
+        self.save()
+        return self.token
+
+    def activate(self, code):
+        if self.code != code:
+            return 0x1
+        else:
+            self.status = 0x1
+            self.save()
+        return
+
+    def retrieve(self):
+        self.code = Utils.get_random_string(32)
+        self.code_expire_date = timezone.now + datetime.timedelta(days = CODE_EXPIRE_DAYS)
+        self.save()
+
+
+    def resetpsw(self, code, password):
+        if self.code == code:
+            self.password = password
+            self.code = ""
+            self.save()   
+
 
             
 
