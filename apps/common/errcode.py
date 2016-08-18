@@ -23,3 +23,6 @@ FORMAT_ILLEGAL_CODE = 0x00000001
 #//-----------------//
 #// 账户系统错误码定义//
 #//-----------------//
+#/** 邮箱已被注册. */
+EMAIL_REPEAT = "EMAIL_REPEAT"
+EMAIL_REPEAT_CODE = 0x00010001
