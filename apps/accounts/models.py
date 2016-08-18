@@ -16,6 +16,7 @@ class AccountManager(models.Manager):
     def add_account(self, email, password):
         account = self.model(email = email, password = password) #创建account实例
         account.save() #将实例写入数据库
+        return account.code
 
 
 # Create your models here.
@@ -45,6 +46,8 @@ class Account(models.Model):
 
     def __init__(self, *args, **kwargs):
         super(Account, self).__init__(*args, **kwargs)
+        self.code = Utils.get_random_string(32)
+        self.code_expire_date = timezone.now + datetime.timedelta(days = CODE_EXPIRE_DAYS)
         #user = None
 
     def signin(self, remember):
