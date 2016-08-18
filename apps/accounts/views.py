@@ -34,24 +34,22 @@ def signup(request):
 			# TODO check captcha.
 
 			if (Account.objects.filter(email=email).exists()):
-				errCode = 0x1
-				reason.append("EMAIL_REPEAT")
+				return HttpResponseCustomer(errCode = EMAIL_REPEAT_CODE, reason = [EMAIL_REPEAT], data = {"email":email})
 			else:
 				#account = Account.objects.create()
 				#account = Account(email=email, password=password)
 				#account.save()
-				Account.objects.add_account(email = email, password = password)
+				code = Account.objects.add_account(email = email, password = password)
 
 				subject, from_email, to = 'others', 'jiangrains@126.com', 'jiangdunchuan2006@126.com'
 				text_content = 'This is an important message.'
-				html_content = '<b>激活链接：</b><a href="http://www.baidu.com">http:www.baidu.com</a>'
+				html_content = '<b>激活链接：</b><a href="http://www.baidu.com?code=%s&email=%s">activate</a>' % (code, email)
 				#html_content = '<p>This is an <strong>important</strong> message.</p>'
 				msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
 				msg.attach_alternative(html_content, "text/html")
 				msg.send()
 	else:
-		errCode = FORMAT_ILLEGAL_CODE
-		reason.append(FORMAT_ILLEGAL)
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":email})
 
 	data = {}
 	data["email"] = email
