@@ -15,10 +15,6 @@ from common.errcode import *
 # Create your views here.
 @csrf_exempt
 def signup(request):
-	errCode = 0
-	reason = []
-	email = ""
-
 	if request.method == "POST":
 		email = request.POST.get("email", "")
 		password = request.POST.get("password", "")
@@ -49,143 +45,101 @@ def signup(request):
 				msg.attach_alternative(html_content, "text/html")
 				msg.send()
 	else:
-		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":email})
-
-	data = {}
-	data["email"] = email
-	response_data = {}
-	response_data["v"] = "1.0"
-	response_data["code"] = errCode
-	response_data["reason"] = reason
-	response_data["data"] = data
-	return HttpResponse(json.dumps(response_data), content_type = "application/json")
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":""})
+	return HttpResponseCustomer(errCode = 0, reason = [], data = {"email":email})
 
 
 @csrf_exempt
 def signin(request):
-	errCode = 0
-	reason = []
-	token = ""
-
 	if request.method == "POST":
-		email = request.POST.get("email", None)
-		password = request.POST.get("password", None)
-		remember = request.POST.get("remember", None)
-		token = ""
+		email = request.POST.get("email", "")
+		password = request.POST.get("password", "")
+		remember = request.POST.get("remember", "") #TODO convert remember to boolean type.
 
 		#TODO check captcha.
 
-		try:
-			account = Account.objects.get(email = email)
-		except :
-			errCode = 0x1
-			reason.append("USERNAME_OR_PASSWORD_INVALID")
+		if email == "" or password == "":
+			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"token":""})
 		else:
-			if account.password != password:
-				errCode = 0x2
-				reason.append("PASSWORD_INVALID")
+			try:
+				account = Account.objects.get(email = email)
+			except :
+				return HttpResponseCustomer(errCode = ACCOUNT_INVALID_CODE, reason = [ACCOUNT_INVALI], data = {"token":""})
 			else:
-				token = account.signin(remember)
+				if account.password != password:
+					return HttpResponseCustomer(errCode = PASSWORD_INVALID_CODE, reason = [PASSWORD_INVALID], data = {"token":""})
+
+				if account.status == Account.ACCOUNT_NOTACTIVE:
+					return HttpResponseCustomer(errCode = ACCOUNT_NOTACTIVATED_CODE, reason = [ACCOUNT_NOTACTIVATED], data = {"token":""})
 				
-	data = {}
-	data["token"] = token
-	response_data = {}
-	response_data["v"] = "1.0"
-	response_data["code"] = errCode
-	response_data["reason"] = reason
-	response_data["data"] = data
-	return HttpResponse(json.dumps(response_data), content_type = "application/json")
+				token = account.signin(remember)
+	else:
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"token":""})
+	return HttpResponseCustomer(errCode = 0, reason = [], data = {"token":token})
 
 
 
 @csrf_exempt
 def checktoken(request):
-	errCode = 0
-	reason = []
-	token = ""
-
-	if request.method == "POST":
-		token = request.POST.get("token", None)
-
+	token = request.POST.get("token", "")
+	if request.method == "POST" and token != "":
 		try:
-			account = Account.objects.get(email = email)
+			account = Account.objects.get(token = token)
 		except :
-			errCode = 0x1
-			reason.append("USERNAME_OR_PASSWORD_INVALID")
-		else:
-			if account.password != password:
-				errCode = 0x2
-				reason.append("PASSWORD_INVALID")
-			else:
-				token = account.signin(remember)
-				
-	data = {}
-	data["token"] = token
-	response_data = {}
-	response_data["v"] = "1.0"
-	response_data["code"] = errCode
-	response_data["reason"] = reason
-	response_data["data"] = data
-	return HttpResponse(json.dumps(response_data), content_type = "application/json")
+			return HttpResponseCustomer(errCode = TOKEN_ILLEGAL_CODE, reason = [TOKEN_ILLEGAL], data = {"token":""})
+	else:
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"token":""})
+
+	if account.checktoken() != 0:
+		return HttpResponseCustomer(errCode = TOKEN_EXPIRE_CODE, reason = [TOKEN_EXPIRE], data = {"token":token})
+	else:
+		return HttpResponseCustomer(errCode = 0, reason = [], data = {"token":token})	
+
 
 
 @csrf_exempt
 def activate(request):
-	errCode = 0
-	reason = []
-	email = ""
-	
-	if request.method == "POST":
-		email = request.POST.get("email", None)
-		code = request.POST.get("code", None)
+	if request.method == "GET":
+		email = request.GET.get("email", "")
+		code = request.GET.get("code", "")
 
-		try:
-			account = Account.objects.get(email = email)
-		except :
-			errCode = 0x1
-			reason.append("ACCOUNT_INVALID")
+		if email == "" or code == "":
+			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":""})
 		else:
-			if account.status == 0:
-				account.activate(code)
+			try:
+				account = Account.objects.get(email = email)
+			except :
+				return HttpResponseCustomer(errCode = ACCOUNT_INVALID_CODE, reason = [ACCOUNT_INVALI], data = {"email":email})
 			else:
-				errCode = 0x2
-				reason.append("ACCOUNT_DUP_ACTIVATED")
-				
-	data = {}
-	data["email"] = email
-	response_data = {}
-	response_data["v"] = "1.0"
-	response_data["code"] = errCode
-	response_data["reason"] = reason
-	response_data["data"] = data
-	return HttpResponse(json.dumps(response_data), content_type = "application/json")
+				if account.status != Account.ACCOUNT_NOTACTIVE:
+					return HttpResponseCustomer(errCode = ACCOUNT_ACTIVATE_CODE, reason = [ACCOUNT_ACTIVATE], data = {"email":email})
+
+				if account.activate() != 0:
+					return HttpResponseCustomer(errCode = CODE_ILLEGAL_CODE, reason = [CODE_ILLEGAL], data = {"email":email; "code":code})
+	else:
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":""})
+	return HttpResponseCustomer(errCode = 0, reason = [], data = {"email":email})
+
+
 
 
 @csrf_exempt
 def exists(request):
-	errCode = 0
-	reason = []
-	exists = False
-	
 	if request.method == "GET":
-		email = request.GET.get("email", None)
+		email = request.GET.get("email", "")
 
 		try:
 			account = Account.objects.get(email = email)
 		except :
-			errCode = 0x1
-			reason.append("ACCOUNT_INVALID")
+			exist = False
 		else:
 			exists = True
-				
-	data = {}
-	data["exists"] = exists
-	response_data = {}
-	response_data["v"] = "1.0"
-	response_data["code"] = errCode
-	response_data["reason"] = reason
-	response_data["data"] = data
-	return HttpResponse(json.dumps(response_data), content_type = "application/json")
+	else:
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"exists":False; "email":""})
+	return HttpResponseCustomer(errCode = 0, reason = [], data = {"exists":exists})
+
+
+
 
 @csrf_exempt
 def retrieve(request):
