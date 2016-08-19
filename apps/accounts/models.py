@@ -50,6 +50,8 @@ class Account(models.Model):
         self.code_expire_date = timezone.now + datetime.timedelta(days = CODE_EXPIRE_DAYS)
         #user = None
 
+
+    #返回登陆会话的token
     def signin(self, remember):
         if remember == True:
             self.token = Utils.get_uuid()
@@ -67,6 +69,10 @@ class Account(models.Model):
             self.status = 0x1
             self.save()
         return
+
+    def checktoken(self):
+        return 0x0 if timezone.now < self.token_expire_date else 0x1
+
 
     def retrieve(self):
         self.code = Utils.get_random_string(32)
