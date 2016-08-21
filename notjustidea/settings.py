@@ -91,7 +91,7 @@ DATABASES = {
         'NAME':'NOTJUSTIDEA',
         'ENGINE':'django.db.backends.mysql',
         'USER':'root',
-        'PASSWORD':'jiangdunchuan',
+        'PASSWORD':'23Imaxgine',
         'HOST':'127.0.0.1',
         'PORT':'3306',
     }
@@ -141,6 +141,7 @@ STATICFILES_FINDERS = (
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "webpages"),
+    os.path.join(BASE_DIR, "backend_webpages_test"),
 )
 #SITE_ROOT = os.path.dirname(os.path.abspath(__file__))
 #SITE_ROOT = os.path.abspath(os.path.join(SITE_ROOT, '../'))
