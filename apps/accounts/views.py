@@ -7,9 +7,12 @@ from django.core.mail import send_mail
 import json
 import logging
 
-from models import Account
+from accounts.models import Account
 from common.http_response_customer import HttpResponseCustomer
+from common.views import check_captcha_inna
 from common.errcode import *
+
+
 
 
 # Create your views here.
@@ -21,29 +24,30 @@ def signup(request):
 		captchaId = request.POST.get("captchaId", "")
 		captcha = request.POST.get("captcha", "")
 
-		logging.debug("email = %s password = %s captcha = %s." % (email, password, captcha))
-
-		if email == "" or password == "":
+		if email == "" or password == "" or captchaId == "" or captcha == "":
 			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":email})
+
+		#errCode, reason = check_captcha_inna(captchaId, captcha)
+		#if errCode != 0:
+		#	return HttpResponseCustomer(errCode = errCode, reason = [reason], data = {"email":email})
+
+		if (Account.objects.filter(email=email).exists()):
+			return HttpResponseCustomer(errCode = EMAIL_REPEAT_CODE, reason = [EMAIL_REPEAT], data = {"email":email})
 		else:
+			#account = Account.objects.create()
+			#account = Account(email=email, password=password)
+			#account.save()
+			code = Account.objects.add_account(email = email, password = password)
 
-			# TODO check captcha.
-
-			if (Account.objects.filter(email=email).exists()):
-				return HttpResponseCustomer(errCode = EMAIL_REPEAT_CODE, reason = [EMAIL_REPEAT], data = {"email":email})
-			else:
-				#account = Account.objects.create()
-				#account = Account(email=email, password=password)
-				#account.save()
-				code = Account.objects.add_account(email = email, password = password)
-
-				subject, from_email, to = 'others', 'jiangrains@126.com', 'jiangdunchuan2006@126.com'
-				text_content = 'This is an important message.'
-				html_content = '<b>激活链接：</b><a href="http://www.baidu.com?code=%s&email=%s">activate</a>' % (code, email)
-				#html_content = '<p>This is an <strong>important</strong> message.</p>'
+			subject, from_email, to = 'others', 'jiangrains@126.com', email
+			text_content = 'This is an important message.'
+			html_content = u"<b>激活链接：</b><a href=\"http://120.25.221.4/accounts/activate?code=%s&email=%s\">activate</a>" % (code, email)
+			try:
 				msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
 				msg.attach_alternative(html_content, "text/html")
 				msg.send()
+			except :
+				return HttpResponseCustomer(errCode = EMAIL_SEND_FAIL_CODE, reason = [EMAIL_SEND_FAIL], data = {"email":email})
 	else:
 		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":""})
 	return HttpResponseCustomer(errCode = 0, reason = [], data = {"email":email})
@@ -54,25 +58,32 @@ def signin(request):
 	if request.method == "POST":
 		email = request.POST.get("email", "")
 		password = request.POST.get("password", "")
-		remember = request.POST.get("remember", "") #TODO convert remember to boolean type.
+		remember = request.POST.get("remember", "")
+		captchaId = request.POST.get("captchaId", "")
+		captcha = request.POST.get("captcha", "")
 
-		#TODO check captcha.
+		
 
-		if email == "" or password == "":
-			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"token":""})
+		if email == "" or password == "" or remember == "" or captchaId == "" or captcha == "":
+			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {})
+		remember = (remember == "true")	
+
+		#errCode, reason = check_captcha_inna(captchaId, captcha)
+		#if errCode != 0:
+		#	return HttpResponseCustomer(errCode = errCode, reason = [reason], data = {})
+
+		try:
+			account = Account.objects.get(email = email)
+		except :
+			return HttpResponseCustomer(errCode = ACCOUNT_INVALID_CODE, reason = [ACCOUNT_INVALID], data = {"token":""})
 		else:
-			try:
-				account = Account.objects.get(email = email)
-			except :
-				return HttpResponseCustomer(errCode = ACCOUNT_INVALID_CODE, reason = [ACCOUNT_INVALI], data = {"token":""})
-			else:
-				if account.password != password:
-					return HttpResponseCustomer(errCode = PASSWORD_INVALID_CODE, reason = [PASSWORD_INVALID], data = {"token":""})
+			if account.password != password:
+				return HttpResponseCustomer(errCode = PASSWORD_INVALID_CODE, reason = [PASSWORD_INVALID], data = {"token":""})
 
-				if account.status == Account.ACCOUNT_NOTACTIVE:
-					return HttpResponseCustomer(errCode = ACCOUNT_NOTACTIVATED_CODE, reason = [ACCOUNT_NOTACTIVATED], data = {"token":""})
-				
-				token = account.signin(remember)
+			if account.status == Account.ACCOUNT_NOTACTIVATED:
+				return HttpResponseCustomer(errCode = ACCOUNT_NOTACTIVATED_CODE, reason = [ACCOUNT_NOTACTIVATED], data = {"token":""})
+			
+			token = account.signin(remember)
 	else:
 		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"token":""})
 	return HttpResponseCustomer(errCode = 0, reason = [], data = {"token":token})
@@ -86,9 +97,9 @@ def checktoken(request):
 		try:
 			account = Account.objects.get(token = token)
 		except :
-			return HttpResponseCustomer(errCode = TOKEN_ILLEGAL_CODE, reason = [TOKEN_ILLEGAL], data = {"token":""})
+			return HttpResponseCustomer(errCode = TOKEN_ILLEGAL_CODE, reason = [TOKEN_ILLEGAL], data = {})
 	else:
-		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"token":""})
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {})
 
 	if account.checktoken() != 0:
 		return HttpResponseCustomer(errCode = TOKEN_EXPIRE_CODE, reason = [TOKEN_EXPIRE], data = {"token":token})
@@ -105,21 +116,22 @@ def activate(request):
 
 		if email == "" or code == "":
 			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":""})
-		else:
-			try:
-				account = Account.objects.get(email = email)
-			except :
-				return HttpResponseCustomer(errCode = ACCOUNT_INVALID_CODE, reason = [ACCOUNT_INVALI], data = {"email":email})
-			else:
-				if account.status != Account.ACCOUNT_NOTACTIVE:
-					return HttpResponseCustomer(errCode = ACCOUNT_ACTIVATE_CODE, reason = [ACCOUNT_ACTIVATE], data = {"email":email})
 
-				if account.activate() != 0:
-					return HttpResponseCustomer(errCode = CODE_ILLEGAL_CODE, reason = [CODE_ILLEGAL], data = {"email":email; "code":code})
+		try:
+			account = Account.objects.get(email = email)
+		except :
+			return HttpResponseCustomer(errCode = ACCOUNT_INVALID_CODE, reason = [ACCOUNT_INVALID], data = {"email":email})
+		else:
+			if account.status != Account.ACCOUNT_NOTACTIVATED:
+				return HttpResponseCustomer(errCode = ACCOUNT_ACTIVATED_CODE, reason = [ACCOUNT_ACTIVATED], data = {"email":email})
+
+			if account.code != code:
+				return HttpResponseCustomer(errCode = CODE_ILLEGAL_CODE, reason = [CODE_ILLEGAL], data = {"email":email, "code":code})
+
+			account.activate()
+			return HttpResponseCustomer(errCode = 0, reason = [], data = {"email":email})				
 	else:
 		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":""})
-	return HttpResponseCustomer(errCode = 0, reason = [], data = {"email":email})
-
 
 
 
@@ -131,11 +143,11 @@ def exists(request):
 		try:
 			account = Account.objects.get(email = email)
 		except :
-			exist = False
+			exists = False
 		else:
 			exists = True
 	else:
-		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"exists":False; "email":""})
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"exists":False, "email":""})
 	return HttpResponseCustomer(errCode = 0, reason = [], data = {"exists":exists})
 
 
@@ -143,68 +155,70 @@ def exists(request):
 
 @csrf_exempt
 def retrieve(request):
-	errCode = 0
-	reason = []
-	email = ""
-
 	if request.method == "GET":
-		email = request.GET.get("email", None)
-		captchaId = request.GET.get("captchaId", None)
-		captcha = request.GET.get("captcha", None)
+		email = request.GET.get("email", "")
+		captchaId = request.GET.get("captchaId", "")
+		captcha = request.GET.get("captcha", "")
 
-		# TODO check captcha.
+		if email == "" or captchaId == "" or captcha == "":
+			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"sended":False})
+
+		#errCode, reason = check_captcha_inna(captchaId, captcha)
+		#if errCode != 0:
+		#	return HttpResponseCustomer(errCode = errCode, reason = [reason], data = {"email":email})
 
 		try:
 			account = Account.objects.get(email = email)
 		except :
-			errCode = 0x1
-			reason.append("ACCOUNT_INVALID")
+			return HttpResponseCustomer(errCode = ACCOUNT_INVALID_CODE, reason = [ACCOUNT_INVALID], data = {"sended":False})
 		else:
-			account.retrieve()
 
-			subject, from_email, to = 'others', 'jiangrains@126.com', 'jiangdunchuan2006@126.com'
+			if account.status == Account.ACCOUNT_NOTACTIVATED:
+				return HttpResponseCustomer(errCode = ACCOUNT_NOTACTIVATED_CODE, reason = [ACCOUNT_NOTACTIVATED], data = {"sended":False})
+
+			code = account.retrieve()
+
+			subject, from_email, to = 'others', 'jiangrains@126.com', email
 			text_content = 'This is an important message.'
-			html_content = '<b>激活链接：</b><a href="http://www.baidu.com">http:www.baidu.com</a>'
-			#html_content = '<p>This is an <strong>important</strong> message.</p>'
-			msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
-			msg.attach_alternative(html_content, "text/html")
-			msg.send()
+			html_content = u"<b>重置密码页面：</b><a href=\"http://www.baidu.com?code=%s&email=%s\">resetpsw</a>" % (code, email)
+			try:
+				msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+				msg.attach_alternative(html_content, "text/html")
+				msg.send()
+			except :
+				return HttpResponseCustomer(errCode = EMAIL_SEND_FAIL_CODE, reason = [EMAIL_SEND_FAIL], data = {"sended":False, "email":email})
 
-	data = {}
-	data["email"] = email
-	response_data = {}
-	response_data["v"] = "1.0"
-	response_data["code"] = errCode
-	response_data["reason"] = reason
-	response_data["data"] = data
-	return HttpResponse(json.dumps(response_data), content_type = "application/json")
+			return HttpResponseCustomer(errCode = 0, reason = [], data = {"sended":True})
+	else:
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"sended":False})
+
 
 
 @csrf_exempt
 def resetpsw(request):
-	errCode = 0
-	reason = []
-	
 	if request.method == "GET":
-		email = request.GET.get("email", None)
-		code = request.GET.get("code", None)
-		password = request.GET.get("password", None)
+		email = request.GET.get("email", "")
+		code = request.GET.get("code", "")
+		password = request.GET.get("password", "")
+
+		if email == "" or code == "" or password == "":
+			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":email, "code":code, "password":password})
 
 		try:
 			account = Account.objects.get(email = email)
 		except :
-			errCode = 0x1
-			reason.append("ACCOUNT_INVALID")
+			return HttpResponseCustomer(errCode = ACCOUNT_INVALID_CODE, reason = [ACCOUNT_INVALID], data = {"email":email})
 		else:
-			account.resetpsw(code, password)
-				
-	data = {}
-	response_data = {}
-	response_data["v"] = "1.0"
-	response_data["code"] = errCode
-	response_data["reason"] = reason
-	response_data["data"] = data
-	return HttpResponse(json.dumps(response_data), content_type = "application/json")	
+			if account.status == Account.ACCOUNT_NOTACTIVATED:
+				return HttpResponseCustomer(errCode = ACCOUNT_NOTACTIVATED_CODE, reason = [ACCOUNT_NOTACTIVATED], data = {"email":email})
+
+			if account.code != code:
+				return HttpResponseCustomer(errCode = CODE_ILLEGAL_CODE, reason = [CODE_ILLEGAL], data = {"email":email, "code":code})
+
+			account.resetpsw(password)
+			return HttpResponseCustomer(errCode = 0, reason = [], data = {})
+	else:
+		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {})
 
 
 
@@ -241,3 +255,5 @@ def login(request):
 	response_data["password"] = "309Jiang"
 
 	return HttpResponse(json.dumps(response_data), content_type = "application/json")
+
+
