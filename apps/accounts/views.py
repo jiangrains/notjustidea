@@ -27,9 +27,9 @@ def signup(request):
 		if email == "" or password == "" or captchaId == "" or captcha == "":
 			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"email":email})
 
-		#errCode, reason = check_captcha_inna(captchaId, captcha)
-		#if errCode != 0:
-		#	return HttpResponseCustomer(errCode = errCode, reason = [reason], data = {"email":email})
+		errCode, reason = check_captcha_inna(captchaId, captcha)
+		if errCode != 0:
+			return HttpResponseCustomer(errCode = errCode, reason = [reason], data = {"email":email})
 
 		if (Account.objects.filter(email=email).exists()):
 			return HttpResponseCustomer(errCode = EMAIL_REPEAT_CODE, reason = [EMAIL_REPEAT], data = {"email":email})
@@ -68,9 +68,9 @@ def signin(request):
 			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {})
 		remember = (remember == "true")	
 
-		#errCode, reason = check_captcha_inna(captchaId, captcha)
-		#if errCode != 0:
-		#	return HttpResponseCustomer(errCode = errCode, reason = [reason], data = {})
+		errCode, reason = check_captcha_inna(captchaId, captcha)
+		if errCode != 0:
+			return HttpResponseCustomer(errCode = errCode, reason = [reason], data = {})
 
 		try:
 			account = Account.objects.get(email = email)
@@ -163,9 +163,9 @@ def retrieve(request):
 		if email == "" or captchaId == "" or captcha == "":
 			return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {"sended":False})
 
-		#errCode, reason = check_captcha_inna(captchaId, captcha)
-		#if errCode != 0:
-		#	return HttpResponseCustomer(errCode = errCode, reason = [reason], data = {"email":email})
+		errCode, reason = check_captcha_inna(captchaId, captcha)
+		if errCode != 0:
+			return HttpResponseCustomer(errCode = errCode, reason = [reason], data = {"email":email})
 
 		try:
 			account = Account.objects.get(email = email)
@@ -220,6 +220,19 @@ def resetpsw(request):
 	else:
 		return HttpResponseCustomer(errCode = FORMAT_ILLEGAL_CODE, reason = [FORMAT_ILLEGAL], data = {})
 
+
+@csrf_exempt
+def delete(request):
+	if request.method == "POST":
+		email = request.POST.get("email", "")
+		try:
+			account = Account.objects.get(email = email)
+		except :
+			pass
+		else:
+			account.delete()
+
+	return HttpResponseCustomer(errCode = 0, reason = [], data = {})
 
 
 @csrf_exempt

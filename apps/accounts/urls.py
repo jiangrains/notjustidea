@@ -11,4 +11,5 @@ urlpatterns = [
     url(r'^exists$', views.exists, name = 'exists'),
     url(r'^retrieve$', views.retrieve, name = 'retrieve'),
     url(r'^resetpsw$', views.resetpsw, name = 'resetpsw'),
+    url(r'^delete$', views.delete, name = 'delete'),
 ]
